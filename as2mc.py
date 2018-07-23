@@ -8,9 +8,9 @@ class assembler:
         self.insn_func = dict()
 
     def add_insn(self, name, t, opcode, func):
-        self.insn_opcode[name] = opcode
-        self.insn_func[name] = func
-        self.insn_type[name] = t
+        self.insn_opcode[name] = opcode << 0
+        self.insn_func[name]   = func   << 12
+        self.insn_type[name]   = t
 
     def add_zero_in_ahead(self, target, l):
         while len(target) < l:
@@ -18,39 +18,25 @@ class assembler:
         return target
 
     def gen_code(self, insn):
+        encode = 0b0
         apart = [i.strip(' ,') for i in insn.split(' ')]
         name = apart[0]
-        rd = ''
-        rs1 = ''
-        rs2 = ''
-        imm12 = ''
-        load_flag = False
-
         if self.insn_type[name] == 'I':
             name, rd, rs1 = apart
-        if '(' in rs1 or ')' in rs1:
-            load_flag = True
-            imm12, rs1 = [i.strip('() ') for i in rs1.split('(')]
-        
-        imm12 = str(bin(int(imm12))[2:])
-        imm12 = self.add_zero_in_ahead(imm12, 12)
-
-        print(name)
-        print(rd)
-        print(rs1)
-        print(imm12)
-
-        represtion = list('0' * 32)
-        represtion[25:32] = self.insn_opcode[name] # opcode [6:2]
-        represtion[12:17] = self.add_zero_in_ahead(str(bin(self.reg[rs1])[2:]), 5)
-        represtion[17:20] = self.insn_func[name] # func [14:12]
-        represtion[20:25] = self.add_zero_in_ahead(str(bin(self.reg[rd])[2:]), 5)
-        represtion[0:12] = imm12 # imm12 [31:20]
-
-        print(''.join(represtion))
-
+        encode = encode | self.insn_opcode[name] | self.insn_func[name] | self.reg[rd] << 7 | self.reg[rs1] << 15
+        return encode
 
 if __name__=='__main__':
     a = assembler()
-    a.add_insn('vld', 'I', '0001011', '001')
-    a.gen_code('vld v0, 0(a0)')
+    a.add_insn('setvl', 'I', 0b0001011, 0)
+    a.add_insn('vld'  , 'I', 0b0001011, 1)
+    a.add_insn('vadd' , 'I', 0b0001011, 2)
+    a.add_insn('vst'  , 'I', 0b0001011, 3)
+    code = []
+    code.append('setvl a5, a5')
+    code.append('vld v0, a0')
+    code.append('vadd v0, v0')
+    code.append('vst v0, a0')
+    inline_asm = [hex(a.gen_code(i)) for i in code]
+    print(inline_asm)
+    
