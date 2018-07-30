@@ -14,8 +14,9 @@ class assembler:
         # 1 -> name imm20
         # 2 -> name rd, rs1
         # 3 -> name rd, rs1, rs2
-        # 4 -> name rd, imm12(rs1)
+        # 4 -> name rd, imm12(rs1) for load 
         # 5 -> name rd, rs1, imm12
+        # 6 -> name rs1, imm12(rs2) for store
         self.insn_type[name]  = t
 
     def add_zero_in_ahead(self, target, l):
@@ -45,6 +46,13 @@ class assembler:
         elif type_of_insn == 5:
             name, rd, rs1, imm12 = apart
             encode = encode | self.insn_opcode[name] | self.insn_func[name] | self.reg[rd] << 7 | self.reg[rs1] << 15 | int(imm12) << 20
+        elif type_of_insn == 6:
+            name, rs1, target = apart
+            imm12, rs2 = [i.strip(')') for i in target.split('(')]
+            imm12 = int(imm12)
+            imm0_4 = imm12 & 0b11111
+            imm5_12 = imm12 >> 5
+            encode = encode | self.insn_opcode[name] | self.insn_func[name] | self.reg[rs1] << 15 | self.reg[rs2] << 20 | imm0_4 << 7 | imm5_12 << 25
         else:
             raise Exception('No this type')
 
